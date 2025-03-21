@@ -1,6 +1,7 @@
 
 # SkyFireWall-MkI
 A kernel Level integrated Firewall System that blocks ports and ip addresses
+in its esscence it acts as an overlayer on top of the kernal providing basic firewall support
 # UNDER ACTIVE DEVELOPMENT
 # Network Traffic Monitoring & Filtering Tool
 
