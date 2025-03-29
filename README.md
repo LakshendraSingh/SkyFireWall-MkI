@@ -65,7 +65,7 @@ This tool is intended for educational and research purposes only. Unauthorized n
 - Add GUI for better user interaction.
 - Implement machine learning-based anomaly detection.
 - Improve efficiency in firewall rule management.
-
+- Bug Fixes
 ---
 Special Thanks to 
 https://github.com/stamparm/ipsum
