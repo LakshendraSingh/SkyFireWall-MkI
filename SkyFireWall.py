@@ -6,11 +6,28 @@ import sys
 import threading
 import requests
 import platform
-import netifaces
+try:
+    import netifaces
+except ImportError:
+    try:
+        import netifaces2 as netifaces
+    except ImportError:
+        netifaces = None
+
 import subprocess
 import dns.resolver
 import dns.reversename
 import shutil
+
+try:
+    from idps import IDPSEngine, IDPSModel
+except ImportError:
+    IDPSEngine = None
+    IDPSModel = None
+
+ENABLE_IDPS = True
+IDPS_CONFIDENCE_THRESHOLD = 0.65
+idps_engine = None
 
  
 start_time = time.time()
@@ -87,6 +104,26 @@ def get_malicious_ips(get_ips):
 def implement_firewall_rules():
     block_website()
     get_malicious_ips(get_ips)
+
+    # Initialize IDPS Engine (NSL-KDD Machine Learning Intrusion Detection & Prevention)
+    global idps_engine
+    if ENABLE_IDPS and IDPSEngine is not None and idps_engine is None:
+        try:
+            local_range, local_iface = get_local_network()
+            local_ips = set()
+            if local_iface:
+                try:
+                    local_ips.add(scapy.get_if_addr(local_iface))
+                except Exception:
+                    pass
+            idps_engine = IDPSEngine(
+                confidence_threshold=IDPS_CONFIDENCE_THRESHOLD,
+                enable_prevention=True,
+                local_ips=local_ips
+            )
+            print("[IDPS] NSL-KDD Intrusion Detection & Prevention System initialized and active.")
+        except Exception as e:
+            print(f"[IDPS Warning] Failed to initialize IDPS: {e}")
 
     # MAC
     if system_platform == 'Darwin':
@@ -533,6 +570,25 @@ def packet_sniffer(packet):
             else
             "No"
     )
+
+    # Real-Time IDPS Inspection & Prevention (Trained on NSL-KDD)
+    idps_status = "N/A"
+    if ENABLE_IDPS and idps_engine is not None:
+        try:
+            idps_result = idps_engine.inspect_and_enforce(packet)
+            if idps_result.get('is_attack'):
+                cat = idps_result.get('category', 'Attack')
+                atk = idps_result.get('attack_type', 'anomaly')
+                conf = idps_result.get('confidence', 0.0)
+                blocked = f"Yes(IDPS: {cat}-{atk} [{conf*100:.1f}%])"
+                idps_status = f"{cat} ({atk}) - {idps_result.get('threat_level')} [{idps_result.get('ips_action')}]"
+                attacker_ip = idps_result.get('attacker_ip')
+                if attacker_ip and attacker_ip not in BLOCKED_IPS:
+                    BLOCKED_IPS.append(attacker_ip)
+            else:
+                idps_status = "Normal Traffic (Verified by ML)"
+        except Exception as e:
+            idps_status = f"IDPS Analysis Error: {e}"
             
         
     writer.writerow({
@@ -551,15 +607,16 @@ def packet_sniffer(packet):
 
     print(f"""
     ───────────────────────────────────────────
-    Packet No:      {PACKET_COUNTER}
-    Source IP:      {src_ip}
-    Destination IP: {dst_ip}
-    Protocol:       {protocol}
-    Source Port:    {source_port}
+    Packet No:        {PACKET_COUNTER}
+    Source IP:        {src_ip}
+    Destination IP:   {dst_ip}
+    Protocol:         {protocol}
+    Source Port:      {source_port}
     Destination Port: {destination_port}
-    URL/IP/Arpa:            {url}
-    Time:           {time_now}
-    Blocked:        {blocked}
+    URL/IP/Arpa:      {url}
+    IDPS Status:      {idps_status}
+    Time:             {time_now}
+    Blocked:          {blocked}
     ───────────────────────────────────────────
     """, flush= True)
         
@@ -620,13 +677,24 @@ def detect_arp_spoofing(packet):
 
 
 def get_local_network():
-    try: 
-        interface = netifaces.gateways()['default'][netifaces.AF_INET][1] 
-        addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
-        ip = addresses['addr'] 
-        netmask = addresses['netmask']
-        cidr = sum(bin(int(x)).count('1') for x in netmask.split('.'))
-        network_range = f"{ip}/{cidr}"
+    if netifaces is not None:
+        try: 
+            interface = netifaces.gateways()['default'][netifaces.AF_INET][1] 
+            addresses = netifaces.ifaddresses(interface)[netifaces.AF_INET][0]
+            ip = addresses['addr'] 
+            netmask = addresses['netmask']
+            cidr = sum(bin(int(x)).count('1') for x in netmask.split('.'))
+            network_range = f"{ip}/{cidr}"
+            return network_range, interface
+        except Exception:
+            pass
+
+    # Scapy route resolution fallback
+    try:
+        route = scapy.conf.route.route("8.8.8.8")
+        interface = route[0]
+        ip = scapy.get_if_addr(interface)
+        network_range = f"{ip}/24"
         return network_range, interface
     except Exception as e:
         print(f"Error getting network details {e}")
@@ -683,6 +751,14 @@ def reset_firewall():
     except Exception as e:
         print(f"hosts file reset error : {e}")
 
+    # Shutdown and clean up dynamic IDPS rules
+    global idps_engine
+    if idps_engine is not None:
+        try:
+            idps_engine.shutdown()
+        except Exception as e:
+            print(f"[IDPS Shutdown Error] {e}")
+
 
 def filter():
     network_range, interface = get_local_network()
@@ -691,6 +767,24 @@ def filter():
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="SkyFireWall-MkI Network Firewall & IDPS")
+    parser.add_argument("--train-idps", action="store_true", help="Train the IDPS ML model on NSL-KDD and exit")
+    parser.add_argument("--no-idps", action="store_true", help="Disable IDPS machine learning intrusion detection")
+    parser.add_argument("--idps-thresh", type=float, default=0.65, help="IDPS detection confidence threshold (default: 0.65)")
+    args, unknown = parser.parse_known_args()
+
+    global ENABLE_IDPS, IDPS_CONFIDENCE_THRESHOLD
+    if args.no_idps:
+        ENABLE_IDPS = False
+    IDPS_CONFIDENCE_THRESHOLD = args.idps_thresh
+
+    if args.train_idps:
+        print("[*] Starting SkyFireWall IDPS training pipeline on NSL-KDD...")
+        from train_idps import main as train_main
+        train_main()
+        sys.exit(0)
+
     if system_platform == "Linux" or system_platform == "Darwin":
         if os.geteuid() != 0:
             print("This script requires root privileges. Please run with sudo.")

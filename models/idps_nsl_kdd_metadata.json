@@ -1,0 +1,109 @@
+{
+  "train_dataset": "/Users/lakshendra_singh/Downloads/SkyFireWall-MkI-main/NSL-KDD/KDDTrain+.txt",
+  "test_dataset": "/Users/lakshendra_singh/Downloads/SkyFireWall-MkI-main/NSL-KDD/KDDTest+.txt",
+  "train_samples": 125973,
+  "n_estimators": 100,
+  "evaluation": {
+    "test_samples": 22544,
+    "binary_accuracy": 0.7652146912704045,
+    "binary_precision": 0.9673939995040912,
+    "binary_recall": 0.6080417673186317,
+    "binary_f1": 0.7467342935068664,
+    "category_accuracy": 0.7358942512420156,
+    "category_report": {
+      "DoS": {
+        "precision": 0.9609731373542828,
+        "recall": 0.7624664879356569,
+        "f1-score": 0.8502877644069063,
+        "support": 7460.0
+      },
+      "Normal": {
+        "precision": 0.6336507510729614,
+        "recall": 0.9730202862732983,
+        "f1-score": 0.767493806603582,
+        "support": 9711.0
+      },
+      "Probe": {
+        "precision": 0.8504728132387707,
+        "recall": 0.5943824865757952,
+        "f1-score": 0.6997325553124241,
+        "support": 2421.0
+      },
+      "R2L": {
+        "precision": 0.7647058823529411,
+        "recall": 0.004506065857885615,
+        "f1-score": 0.00895933838731909,
+        "support": 2885.0
+      },
+      "U2R": {
+        "precision": 0.25,
+        "recall": 0.014925373134328358,
+        "f1-score": 0.028169014084507043,
+        "support": 67.0
+      },
+      "accuracy": 0.7358942512420156,
+      "macro avg": {
+        "precision": 0.6919605168037911,
+        "recall": 0.4698601399553928,
+        "f1-score": 0.47092849575894763,
+        "support": 22544.0
+      },
+      "weighted avg": {
+        "precision": 0.7808801987123748,
+        "recall": 0.7358942512420156,
+        "f1-score": 0.6883457509761073,
+        "support": 22544.0
+      }
+    }
+  },
+  "features": [
+    "duration",
+    "src_bytes",
+    "dst_bytes",
+    "land",
+    "wrong_fragment",
+    "urgent",
+    "hot",
+    "num_failed_logins",
+    "logged_in",
+    "num_compromised",
+    "root_shell",
+    "su_attempted",
+    "num_root",
+    "num_file_creations",
+    "num_shells",
+    "num_access_files",
+    "num_outbound_cmds",
+    "is_host_login",
+    "is_guest_login",
+    "count",
+    "srv_count",
+    "serror_rate",
+    "srv_serror_rate",
+    "rerror_rate",
+    "srv_rerror_rate",
+    "same_srv_rate",
+    "diff_srv_rate",
+    "srv_diff_host_rate",
+    "dst_host_count",
+    "dst_host_srv_count",
+    "dst_host_same_srv_rate",
+    "dst_host_diff_srv_rate",
+    "dst_host_same_src_port_rate",
+    "dst_host_srv_diff_host_rate",
+    "dst_host_serror_rate",
+    "dst_host_srv_serror_rate",
+    "dst_host_rerror_rate",
+    "dst_host_srv_rerror_rate",
+    "protocol_type",
+    "service",
+    "flag"
+  ],
+  "attack_categories": [
+    "Probe",
+    "DoS",
+    "Normal",
+    "U2R",
+    "R2L"
+  ]
+}

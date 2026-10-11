@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Live firewall logs & spies
+connection_log.csv
+idps_alerts.csv
+SpyFile.csv
+*.bak
+
+# Virtual environments
+.venv/
+venv/
+ENV/
